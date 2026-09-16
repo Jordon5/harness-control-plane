@@ -7,6 +7,9 @@ export default defineConfig({
       '@hcp/contracts': fileURLToPath(
         new URL('./packages/contracts/src/index.ts', import.meta.url),
       ),
+      '@hcp/adapter-cli': fileURLToPath(
+        new URL('./packages/adapters/adapter-cli/src/index.ts', import.meta.url),
+      ),
     },
   },
   test: {

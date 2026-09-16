@@ -1,0 +1,11 @@
+{"type":"session","version":3,"id":"sess-0001","timestamp":"2026-09-15T00:00:00Z","cwd":"/repo"}
+{"type":"agent_start"}
+{"type":"turn_start"}
+{"type":"message_start","message":{"role":"assistant","content":[]}}
+{"type":"message_update","usage":{"input":120,"output":3,"cacheRead":0,"cacheWrite":0,"totalTokens":123,"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"total":0}},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":"Hello"}}
+{"type":"tool_execution_start","toolCallId":"c1","toolName":"bash","args":{"command":"echo hi"}}
+{"type":"tool_execution_end","toolCallId":"c1","toolName":"bash","result":{"output":"hi"},"isError":false}
+{"type":"message_update","usage":{"input":120,"output":9,"cacheRead":0,"cacheWrite":0,"totalTokens":129,"cost":{"input":0,"output":0,"cacheRead":0,"cacheWrite":0,"total":0}},"assistantMessageEvent":{"type":"text_delta","contentIndex":0,"delta":" world"}}
+{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"Hello world"}]}}
+{"type":"turn_end","message":{"role":"assistant","content":[]},"toolResults":[]}
+{"type":"agent_end","messages":[]}

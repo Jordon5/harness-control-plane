@@ -2,6 +2,7 @@ import type { UnifiedEvent } from './event.js';
 import type { HarnessConfig, HarnessManifest, HealthReport, ValidationResult } from './harness.js';
 import type { RunState } from './records.js';
 import type { UnifiedResult } from './result.js';
+import type { UsageRecord } from './usage.js';
 
 export interface CreateRunArgs {
   runId: string;
@@ -36,4 +37,7 @@ export interface HarnessAdapter {
   interrupt(handle: RunHandle): Promise<void>;
   collectResult(handle: RunHandle): Promise<UnifiedResult>;
   cleanup(handle: RunHandle): Promise<void>;
+
+  /** 可选：上报本次 Run 的用量（D6）。不支持的 adapter 可省略。 */
+  collectUsage?(handle: RunHandle): Promise<UsageRecord[]>;
 }

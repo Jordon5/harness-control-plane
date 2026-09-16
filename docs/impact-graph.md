@@ -1,29 +1,34 @@
 # 代码链路影响图
 
 > 随代码演进维护。**改代码前先查此图**，确定受影响链路与应跑的测试（见 [dev-rules.md](./dev-rules.md) R2）。
-> 最后更新：2026-09-15（M1）
+> 最后更新：2026-09-16（M2：adapter-cli + adapter-pi 落地）
 
 ---
 
-## 1. 当前链路（M1）
+## 1. 当前链路
 
 ```text
-@hcp/contracts             （叶子，零依赖：src/*.ts）
-      ▲            ▲
-      │            │
-@hcp/core/schema  @hcp/core/store
-      │            │
-      ▼            ▼
-schema.test.ts    store.test.ts
+@hcp/contracts                    （叶子，零依赖：src/*.ts）
+   ▲        ▲           ▲
+   │        │           │
+core/schema core/store  adapter-cli
+                          ▲
+                          │
+                       adapter-pi
+
+（测试）
+schema.test  store.test  adapter-cli/test  adapter-pi/test
 ```
 
 ## 2. 节点表
 
 | 节点 | 文件 | 依赖 | 被谁依赖 |
 |---|---|---|---|
-| `contracts` | `packages/contracts/src/*.ts` | — | `core/schema`、`core/store`（及未来所有包） |
-| `core/schema` | `core/src/schema/task-schema.ts` | `contracts` | `schema.test.ts` |
-| `core/store` | `core/src/store/{memory,sqlite}.ts` | `contracts` | `store.test.ts` |
+| `contracts` | `packages/contracts/src/*.ts` | — | 所有包 |
+| `core/schema` | `core/src/schema/task-schema.ts` | `contracts` | `schema.test` |
+| `core/store` | `core/src/store/{memory,sqlite}.ts` | `contracts` | `store.test` |
+| `adapter-cli` | `packages/adapters/adapter-cli/src/*.ts` | `contracts`、`cross-spawn`（外部） | `adapter-pi`、`adapter-cli/test` |
+| `adapter-pi` | `packages/adapters/adapter-pi/src/*.ts` | `contracts`、`adapter-cli` | `adapter-pi/test` |
 
 ## 3. 测试覆盖映射
 
@@ -31,23 +36,28 @@ schema.test.ts    store.test.ts
 |---|---|
 | `core/test/schema.test.ts` | `core/schema` |
 | `core/test/store.test.ts` | `core/store`（memory + sqlite 双跑） |
+| `adapter-cli/test/*.test.ts` | `adapter-cli`（假 CLI 脚本）|
+| `adapter-pi/test/*.test.ts` | `adapter-pi`（固定 JSON 样本）|
+| `adapter-*/test/*.integration.test.ts` | `adapter-pi` 真实调用（默认跳过）|
 
 ## 4. 影响规则（改哪测哪）
 
 | 改动位置 | 受影响链路 | 应跑 |
 |---|---|---|
-| `contracts` | `core/schema` + `core/store`（+所有依赖方） | **全量**（契约影响面最大，全测合理） |
-| `core/schema` | 仅 schema | `schema.test.ts` |
-| `core/store` | 仅 store | `store.test.ts` |
+| `contracts` | 所有下游 | **全量**（契约影响面最大） |
+| `core/schema` | schema | `schema.test` |
+| `core/store` | store | `store.test` |
+| `adapter-cli` | adapter-cli + **adapter-pi** | `adapter-cli`、`adapter-pi` 测试 |
+| `adapter-pi` | adapter-pi | `adapter-pi` 测试 |
 
 命令：
 
 ```bash
-npx vitest run packages/core/test/schema.test.ts        # 只测某链路
-npx vitest related packages/core/src/schema/task-schema.ts   # 按依赖自动选
+npx vitest run packages/adapters/adapter-pi/test   # 只测某链路
+npx vitest related packages/adapters/adapter-cli/src/index.ts   # 按依赖自动选（含 adapter-pi）
 ```
 
 ## 5. 维护约定
 
 - 新增模块/包时，**先在此登记节点与依赖边**，再写代码。
-- 结构变化（如 M2 引入 `adapter-cli` → `contracts`）后立即更新本图。
+- 结构变化（如 M3 引入 `core/scheduler`、`core/workspace`）后立即更新本图。

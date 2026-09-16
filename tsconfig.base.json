@@ -15,7 +15,8 @@
     "declaration": true,
     "sourceMap": true,
     "paths": {
-      "@hcp/contracts": ["./packages/contracts/src/index.ts"]
+      "@hcp/contracts": ["./packages/contracts/src/index.ts"],
+      "@hcp/adapter-cli": ["./packages/adapters/adapter-cli/src/index.ts"]
     }
   }
 }
