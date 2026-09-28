@@ -17,6 +17,23 @@ export interface ExecutionProfile {
   supportsJsonResult: boolean;
 }
 
+/** adapter 支持的注入通道（core 只交 ContextPack，不拼具体 CLI）。 */
+export type InjectionChannel =
+  | 'argv-prompt'
+  | 'system-prompt'
+  | 'append-system-prompt'
+  | 'file-refs'
+  | 'context-files'
+  | 'stdin'
+  | 'json-body'
+  | 'env';
+
+export interface InjectionProfile {
+  channels: InjectionChannel[];
+  /** 上下文文件是否由 harness 自行发现；为 true 时调度侧可关掉自动发现避免双份。 */
+  discoversContextFiles?: boolean;
+}
+
 export interface HarnessDefaults {
   model?: string;
 }
@@ -29,6 +46,8 @@ export interface HarnessManifest {
   capabilities: Capability[];
   execution: ExecutionProfile;
   defaults?: HarnessDefaults;
+  /** 可选：注入通道（旧 adapter 缺省时 core 仅送 prompt）。 */
+  injection?: InjectionProfile;
 }
 
 /** 某个 harness 在配置中的实例化参数。 */

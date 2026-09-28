@@ -3,5 +3,7 @@ dist/
 *.tsbuildinfo
 *.log
 .env
+.env.*
 .hcp/
 .tmp/
+.claude/worktrees/

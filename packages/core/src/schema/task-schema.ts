@@ -27,9 +27,12 @@ const StageInput = z.object({
   retry: z.object({ max: z.number().int().min(0) }).default({ max: 0 }),
   output: z.string().min(1).optional(),
   model: z.string().min(1).optional(),
+  intent: z.string().min(1).optional(),
+  done: z.string().min(1).optional(),
 });
 
 const TaskInput = z.object({
+  schema: z.number().int().min(1).default(1),
   id: z.string().min(1),
   project: z.string().min(1),
   goal: z.string().optional(),
@@ -125,6 +128,7 @@ function detectCycle(stages: StageInputT[]): string[] | null {
 
 function normalize(task: TaskInputT): TaskDefinition {
   return {
+    schema: task.schema,
     id: task.id,
     project: task.project,
     goal: task.goal ?? null,
@@ -148,5 +152,7 @@ function normalizeStage(s: StageInputT): StageDefinition {
     retry: { max: s.retry.max },
     output: s.output ?? null,
     model: s.model ?? null,
+    intent: s.intent ?? null,
+    done: s.done ?? null,
   };
 }

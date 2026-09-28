@@ -6,3 +6,4 @@ export type * from './task.js';
 export type * from './records.js';
 export type * from './adapter.js';
 export type * from './store.js';
+export type * from './engine.js';

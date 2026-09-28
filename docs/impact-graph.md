@@ -1,7 +1,7 @@
 # 代码链路影响图
 
 > 随代码演进维护。**改代码前先查此图**，确定受影响链路与应跑的测试（见 [dev-rules.md](./dev-rules.md) R2）。
-> 最后更新：2026-09-16（M2：adapter-cli + adapter-pi 落地）
+> 最后更新：2026-09-19（M3 节点预登记，实现未落地）
 
 ---
 
@@ -16,6 +16,9 @@ core/schema core/store  adapter-cli
                           │
                        adapter-pi
 
+M3 将增加（依赖 contracts；scheduler 依赖下列 + store）：
+  core/scheduler  core/workspace  core/context  core/executor
+
 （测试）
 schema.test  store.test  adapter-cli/test  adapter-pi/test
 ```
@@ -29,6 +32,10 @@ schema.test  store.test  adapter-cli/test  adapter-pi/test
 | `core/store` | `core/src/store/{memory,sqlite}.ts` | `contracts` | `store.test` |
 | `adapter-cli` | `packages/adapters/adapter-cli/src/*.ts` | `contracts`、`cross-spawn`（外部） | `adapter-pi`、`adapter-cli/test` |
 | `adapter-pi` | `packages/adapters/adapter-pi/src/*.ts` | `contracts`、`adapter-cli` | `adapter-pi/test` |
+| `core/scheduler` | `core/src/scheduler/`（计划） | `contracts`、store、workspace、context、executor | scheduler 测试 |
+| `core/workspace` | `core/src/workspace/`（计划） | `contracts` | scheduler、workspace 测试 |
+| `core/context` | `core/src/context/`（计划） | `contracts` | scheduler、context 测试 |
+| `core/executor` | `core/src/executor/`（计划） | `contracts` | scheduler、executor 测试 |
 
 ## 3. 测试覆盖映射
 
@@ -49,6 +56,10 @@ schema.test  store.test  adapter-cli/test  adapter-pi/test
 | `core/store` | store | `store.test` |
 | `adapter-cli` | adapter-cli + **adapter-pi** | `adapter-cli`、`adapter-pi` 测试 |
 | `adapter-pi` | adapter-pi | `adapter-pi` 测试 |
+| `core/scheduler` | 调度循环 | `scheduler` 测试（假 adapter） |
+| `core/workspace` | worktree + overlap | `workspace` 测试 |
+| `core/context` | ContextPack 组装 | `context` 测试 |
+| `core/executor` | local-command | `executor` 测试 |
 
 命令：
 

@@ -1,6 +1,30 @@
 import type { CreateRunArgs, HarnessManifest, UnifiedEvent, UnifiedResult } from '@hcp/contracts';
 import { CliAdapter, type LineContext, type ResultContext, type UsageSnapshot } from '@hcp/adapter-cli';
 
+function renderProjectContext(ctx: NonNullable<CreateRunArgs['context']>): string | null {
+  const lines: string[] = [];
+  if (ctx.projectContext.length > 0) {
+    lines.push('项目上下文（精选）：');
+    for (const c of ctx.projectContext) lines.push(`- [${c.kind}] ${c.key}: ${c.value}`);
+  }
+  if (ctx.ownedPaths.length > 0) {
+    lines.push('写入范围（owned_paths）：');
+    for (const p of ctx.ownedPaths) lines.push(`- ${p}`);
+  }
+  if (ctx.doneCriteria) lines.push(`完成判据：${ctx.doneCriteria}`);
+  if (lines.length === 0) return null;
+  return lines.join('\n');
+}
+
+function buildPrimaryPrompt(args: CreateRunArgs): string {
+  const ctx = args.context;
+  if (!ctx) return args.prompt;
+  const parts: string[] = [];
+  if (ctx.goal) parts.push(`任务目标：${ctx.goal}`);
+  parts.push(`当前节点：${ctx.stageIntent}`);
+  return parts.join('\n');
+}
+
 export interface PiOptions {
   provider?: string;
   model?: string;
@@ -36,6 +60,10 @@ export class PiAdapter extends CliAdapter {
         supportsJsonResult: true,
       },
       defaults: { model: this.options().model ?? 'claude-haiku-4-5' },
+      injection: {
+        channels: ['argv-prompt', 'append-system-prompt', 'file-refs', 'context-files'],
+        discoversContextFiles: true,
+      },
     };
   }
 
@@ -59,7 +87,17 @@ export class PiAdapter extends CliAdapter {
     if (model) argv.push('--model', model);
     if (o.thinking) argv.push('--thinking', o.thinking);
     if (o.systemPrompt) argv.push('--system-prompt', o.systemPrompt);
-    argv.push(args.prompt);
+
+    const ctx = args.context;
+    if (ctx && this.manifest().injection?.channels.includes('append-system-prompt')) {
+      const extra = renderProjectContext(ctx);
+      if (extra) argv.push('--append-system-prompt', extra);
+    }
+    if (ctx && this.manifest().injection?.channels.includes('file-refs')) {
+      for (const u of ctx.upstream) argv.push(`@${u.path}`);
+    }
+
+    argv.push(buildPrimaryPrompt(args));
     return argv;
   }
 

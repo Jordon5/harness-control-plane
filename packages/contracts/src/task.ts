@@ -29,10 +29,16 @@ export interface StageDefinition {
   retry: RetryPolicy;
   output: string | null;
   model: string | null;
+  /** 本节点意图；缺省回退到任务 goal。 */
+  intent: string | null;
+  /** 完成判据（自然语言）。 */
+  done: string | null;
 }
 
 /** 归一化后的任务定义。 */
 export interface TaskDefinition {
+  /** 可选版本号；缺省视为 1。 */
+  schema: number;
   id: string;
   project: string;
   goal: string | null;

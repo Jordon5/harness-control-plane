@@ -95,3 +95,28 @@ export interface ContextRecord {
   sourceRunId: string | null;
   createdAt: string;
 }
+
+/** 注入用瘦上下文：不把整条 ContextRecord 交给 adapter。 */
+export interface ContextItem {
+  kind: ContextKind;
+  key: string;
+  value: string;
+}
+
+/** 上游产物引用；harness 需要内容时自行读取。 */
+export interface ArtifactRef {
+  stageId: string;
+  runId: string;
+  path: string;
+  kind: ArtifactKind;
+}
+
+/** 结构化注入给 harness 的一次 Run 上下文。 */
+export interface ContextPack {
+  goal: string | null;
+  stageIntent: string;
+  upstream: ArtifactRef[];
+  projectContext: ContextItem[];
+  ownedPaths: string[];
+  doneCriteria: string | null;
+}

@@ -17,6 +17,7 @@
 | [ADR-009](./ADR-009-adapter-scope.md) | 首期适配器范围 | Accepted |
 | [ADR-010](./ADR-010-multi-project.md) | 首期不支持跨仓库编排 | Accepted |
 | [ADR-011](./ADR-011-contracts-package.md) | 契约独立成包（@hcp/contracts） | Accepted |
+| [ADR-012](./ADR-012-platform-positioning.md) | 定位演进为平台工程 | Accepted |
 
 ## 模板
 

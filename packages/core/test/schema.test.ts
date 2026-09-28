@@ -138,6 +138,35 @@ stages: []
     expect(r.ok).toBe(false);
   });
 
+  it('可选 schema 版本缺省为 1', () => {
+    const r = parseTask(VALID);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.schema).toBe(1);
+  });
+
+  it('intent/done 缺省为 null 且显式值生效', () => {
+    const r = parseTask(`
+schema: 1
+id: t
+project: .
+stages:
+  - id: a
+    harness: { preferred: [pi] }
+    intent: 做某事
+    done: 检查点通过
+  - id: b
+    kind: local-command
+    command: npm test
+`);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.stages[0]?.intent).toBe('做某事');
+    expect(r.value.stages[0]?.done).toBe('检查点通过');
+    expect(r.value.stages[1]?.intent).toBeNull();
+    expect(r.value.stages[1]?.done).toBeNull();
+  });
+
   it('YAML 语法错误给出可读信息', () => {
     const r = parseTask('id: t\n  bad: [');
     expect(r.ok).toBe(false);

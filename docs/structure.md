@@ -18,6 +18,7 @@ harness-control-plane/
 │   ├── impact-graph.md            # 代码链路影响图
 │   ├── M1/                        # 阶段目录：plan.md（计划）+ verification.md（验收核查）
 │   ├── M2/ …                      # 后续阶段同构
+│   ├── 契约/                      # 契约地图（已冻 / M3 必冻 / 后冻 / 版本规则）
 │   └── adr/                       # 架构决策记录
 ├── packages/                      # npm workspaces
 │   ├── core/                      # 域模型、调度、状态机、Store、上下文

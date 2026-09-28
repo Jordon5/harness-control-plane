@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harness Control Plane — 现状地图</title>
+<style>
+  :root {
+    --bg: #f6f6f4;
+    --surface: #ffffff;
+    --border: #e4e2df;
+    --border-strong: #d0cdc9;
+    --text: #1c1917;
+    --muted: #78716c;
+    --faint: #a8a29e;
+    --done: #15803d;
+    --done-bg: #f0fdf4;
+    --done-bd: #bbf7d0;
+    --partial: #b45309;
+    --partial-bg: #fffbeb;
+    --partial-bd: #fde68a;
+    --todo: #a8a29e;
+    --todo-bg: #fafaf9;
+    --todo-bd: #e7e5e4;
+    --platform: #1d4ed8;
+    --platform-bg: #eff6ff;
+    --platform-bd: #bfdbfe;
+    --provider: #7c3aed;
+    --provider-bg: #f5f3ff;
+    --provider-bd: #ddd6fe;
+    --consumer: #0f766e;
+    --consumer-bg: #f0fdfa;
+    --consumer-bd: #99f6e4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 40px 24px 80px;
+    font-size: 14px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+
+  header { margin-bottom: 36px; }
+  h1 { font-size: 24px; font-weight: 650; letter-spacing: -0.02em; }
+  h1 .sub { color: var(--muted); font-weight: 400; font-size: 15px; display: block; margin-top: 6px; letter-spacing: 0; }
+
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 20px; font-size: 12.5px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  section { margin-bottom: 44px; }
+  h2 { font-size: 15px; font-weight: 650; margin-bottom: 4px; }
+  h2 .n { color: var(--faint); font-weight: 400; margin-right: 8px; font-variant-numeric: tabular-nums; }
+  .note { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+
+  /* 抽象边界 三列 */
+  .boundary { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 14px; align-items: stretch; }
+  .col { border-radius: 10px; padding: 16px; border: 1px solid; }
+  .col h3 { font-size: 12.5px; font-weight: 650; letter-spacing: 0.02em; text-transform: uppercase; margin-bottom: 12px; }
+  .col.prov { background: var(--provider-bg); border-color: var(--provider-bd); }
+  .col.prov h3 { color: var(--provider); }
+  .col.plat { background: var(--platform-bg); border-color: var(--platform-bd); }
+  .col.plat h3 { color: var(--platform); }
+  .col.cons { background: var(--consumer-bg); border-color: var(--consumer-bd); }
+  .col.cons h3 { color: var(--consumer); }
+  .col ul { list-style: none; }
+  .col li { font-size: 13px; padding: 5px 0; border-bottom: 1px dashed rgba(0,0,0,0.07); display: flex; justify-content: space-between; gap: 8px; }
+  .col li:last-child { border-bottom: none; }
+  .col li .t { color: var(--faint); font-size: 11.5px; }
+  .arrow { text-align: center; color: var(--faint); font-size: 20px; align-self: center; }
+
+  /* 分层栈 */
+  .stack { display: flex; flex-direction: column; gap: 7px; }
+  .layer { display: grid; grid-template-columns: 190px 1fr auto; gap: 14px; align-items: center;
+           background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; }
+  .layer .lname { font-weight: 600; font-size: 13.5px; }
+  .layer .ldesc { color: var(--muted); font-size: 12.5px; }
+  .layer .lstat { font-size: 11.5px; padding: 3px 9px; border-radius: 20px; border: 1px solid; white-space: nowrap; }
+  .st-done { color: var(--done); background: var(--done-bg); border-color: var(--done-bd); }
+  .st-part { color: var(--partial); background: var(--partial-bg); border-color: var(--partial-bd); }
+  .st-todo { color: var(--todo); background: var(--todo-bg); border-color: var(--todo-bd); }
+  .layer.done { border-left: 3px solid var(--done); }
+  .layer.part { border-left: 3px solid var(--partial); }
+  .layer.todo { border-left: 3px solid var(--todo-bd); }
+
+  /* 能力域进度 */
+  .domains { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+  .dom { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 13px 15px; }
+  .dom .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .dom .name { font-weight: 600; font-size: 13.5px; }
+  .dom .ms { font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+  .bar { height: 5px; border-radius: 3px; background: #eeedeb; overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 3px; }
+  .dom .d { font-size: 12px; color: var(--muted); margin-top: 7px; }
+
+  /* 两条管道 */
+  .pipes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .pipe { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 16px; }
+  .pipe.built { border-top: 3px solid var(--done); }
+  .pipe.missing { border-top: 3px solid var(--todo-bd); }
+  .pipe h4 { font-size: 13.5px; margin-bottom: 4px; }
+  .pipe .scope { font-size: 11.5px; color: var(--faint); margin-bottom: 12px; }
+  .flow { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-size: 12px; }
+  .flow .node { background: #f5f5f3; border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; white-space: nowrap; }
+  .flow .node.on { background: var(--done-bg); border-color: var(--done-bd); color: var(--done); }
+  .flow .ar { color: var(--faint); }
+
+  /* 黑板模型 */
+  .bb { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .bbrow { display: grid; grid-template-columns: 76px 1fr; gap: 14px; align-items: center; }
+  .bbtag { font-size: 11.5px; font-weight: 650; padding: 4px 8px; border-radius: 6px; text-align: center; }
+  .bbtag.ok { color: var(--done); background: var(--done-bg); border: 1px solid var(--done-bd); }
+  .bbtag.no { color: var(--todo); background: var(--todo-bg); border: 1px solid var(--todo-bd); }
+  .chain { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+  .chip { border: 1px solid var(--border-strong); border-radius: 7px; padding: 6px 11px; background: var(--surface); white-space: nowrap; }
+  .chip.core { background: var(--platform-bg); border-color: var(--platform-bd); color: var(--platform); font-weight: 600; }
+  .chip.ad { background: var(--provider-bg); border-color: var(--provider-bd); }
+  .chip.strike { color: var(--faint); text-decoration: line-through; border-style: dashed; }
+
+  /* 路线图 */
+  .ms { display: flex; gap: 0; align-items: stretch; }
+  .m { flex: 1; text-align: center; position: relative; padding: 0 4px; }
+  .m .pill { display: inline-block; font-size: 11.5px; font-weight: 650; padding: 6px 0; width: 100%; border-radius: 6px; border: 1px solid; }
+  .m .desc { font-size: 11px; color: var(--muted); margin-top: 7px; line-height: 1.45; }
+  .m.done .pill { color: var(--done); background: var(--done-bg); border-color: var(--done-bd); }
+  .m.now .pill { color: var(--partial); background: var(--partial-bg); border-color: var(--partial-bd); }
+  .m.todo .pill { color: var(--todo); background: var(--todo-bg); border-color: var(--todo-bd); }
+  .m.now::after { content: ""; position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%);
+                  width: 6px; height: 6px; border-radius: 50%; background: var(--partial); }
+
+  footer { color: var(--faint); font-size: 12px; border-top: 1px solid var(--border); padding-top: 18px; }
+  footer b { color: var(--muted); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Harness Control Plane
+      <span class="sub">可扩展的多 Agent Harness 调度平台 · 现状地图 · 2026-09-16</span>
+    </h1>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--done)"></i>已实现</span>
+      <span><i class="dot" style="background:var(--partial)"></i>部分 / 占位</span>
+      <span><i class="dot" style="background:var(--todo-bd)"></i>未开始</span>
+      <span><i class="dot" style="background:var(--provider)"></i>供给方 provider</span>
+      <span><i class="dot" style="background:var(--consumer)"></i>消费方 consumer</span>
+    </div>
+  </header>
+
+  <!-- 1. 抽象边界 -->
+  <section>
+    <h2><span class="n">01</span>抽象边界 · 平台只做调和</h2>
+    <p class="note">供给方与消费方分列两侧、复数可插拔；平台本体不依赖任何具体 provider 或 consumer（守 ADR-002 / 007 / 011）。</p>
+    <div class="boundary">
+      <div class="col prov">
+        <h3>供给方 Providers</h3>
+        <ul>
+          <li><span>adapter-pi</span><span class="t">已实现</span></li>
+          <li><span>adapter-cli 基类</span><span class="t">已实现</span></li>
+          <li><span>adapter-claude-code</span><span class="t">规划 M4</span></li>
+          <li><span>adapter-codex</span><span class="t">规划 M4</span></li>
+          <li><span>RouteStrategy</span><span class="t">规划 M4</span></li>
+          <li><span>Store（mem / sqlite）</span><span class="t">已实现</span></li>
+        </ul>
+      </div>
+      <div class="col plat">
+        <h3>平台本体 Platform</h3>
+        <ul>
+          <li><span>任务模型 / 契约</span><span class="t">M1 ✓</span></li>
+          <li><span>YAML schema 校验</span><span class="t">M1 ✓</span></li>
+          <li><span>调度器 · 状态机</span><span class="t">M3</span></li>
+          <li><span>Workspace / 隔离</span><span class="t">M3</span></li>
+          <li><span>上下文工程</span><span class="t">M1桩 / M3</span></li>
+          <li><span>Registry · 路由 · 降级</span><span class="t">M4</span></li>
+          <li><span>审批 Gate</span><span class="t">M4</span></li>
+        </ul>
+      </div>
+      <div class="col cons">
+        <h3>消费方 Consumers</h3>
+        <ul>
+          <li><span>CLI（hcp）</span><span class="t">规划 M5</span></li>
+          <li><span>HTTP API / serve</span><span class="t">规划 M5</span></li>
+          <li><span>TUI</span><span class="t">Should</span></li>
+          <li><span>WebUI</span><span class="t">Could</span></li>
+          <li><span>CI / 外部集成</span><span class="t">—</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 分层栈 -->
+  <section>
+    <h2><span class="n">02</span>分层架构 · 实现状态</h2>
+    <p class="note">六层。左侧色条 = 该层当前落地程度。</p>
+    <div class="stack">
+      <div class="layer todo">
+        <span class="lname">CLI（hcp）</span>
+        <span class="ldesc">list / run / status / logs / diff / merge + serve</span>
+        <span class="lstat st-todo">未开始 · M5</span>
+      </div>
+      <div class="layer part">
+        <span class="lname">Control Plane</span>
+        <span class="ldesc">任务模型 ✓ · schema ✓ ｜ DAG 调度 ✗ · 状态机 ✗ · 审批 ✗ · 合并 ✗ · 上下文注入 ✗</span>
+        <span class="lstat st-part">约 25%</span>
+      </div>
+      <div class="layer todo">
+        <span class="lname">Registry</span>
+        <span class="ldesc">manifest 加载 · 能力索引 · 健康检查 · 路由决策</span>
+        <span class="lstat st-todo">未开始 · M4</span>
+      </div>
+      <div class="layer part">
+        <span class="lname">Adapter Layer</span>
+        <span class="ldesc">adapter-cli 基类 ✓ · adapter-pi ✓ ｜ claude-code / codex ✗ · http ✗</span>
+        <span class="lstat st-part">骨架 + 1 实现</span>
+      </div>
+      <div class="layer todo">
+        <span class="lname">Workspaces</span>
+        <span class="ldesc">Git worktree 管理 · owned_paths 所有权 · 只读隔离 · 重叠检测</span>
+        <span class="lstat st-todo">未开始 · M3</span>
+      </div>
+      <div class="layer part">
+        <span class="lname">Persistence</span>
+        <span class="ldesc">Store 接口 ✓ · 内存实现 ✓ · SQLite 实现 ✓（含 usage / context / config_ref 表）</span>
+        <span class="lstat st-part">模型完整 · 无运行时写入</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 能力域 -->
+  <section>
+    <h2><span class="n">03</span>九个能力域 · 进度</h2>
+    <p class="note">规划已覆盖 D1–D9；实现仅触及 D1 的一角与 D5 的存储层。</p>
+    <div class="domains">
+      <div class="dom">
+        <div class="top"><span class="name">D1 编排与调度</span><span class="ms">M1 ✓ / M3</span></div>
+        <div class="bar"><i style="width:30%;background:var(--partial)"></i></div>
+        <p class="d">YAML 解析 + 归一化 + DAG 校验已就绪；<b>调度执行、状态机、任务态注入未做</b>。</p>
+      </div>
+      <div class="dom">
+        <div class="top"><span class="name">D2 隔离与工作区</span><span class="ms">M3</span></div>
+        <div class="bar"><i style="width:0%"></i></div>
+        <p class="d">worktree 管理、owned_paths 重叠检测 —— 全部未开始。</p>
+      </div>
+      <div class="dom">
+        <div class="top"><span class="name">D3 路由与降级</span><span class="ms">M4</span></div>
+        <div class="bar"><i style="width:0%"></i></div>
+        <p class="d">契约已含 manifest / capabilities / execution；决策逻辑未做。</p>
+      </div>
+      <div class="dom">
+        <div class="top"><span class="name">D4 审批与安全边界</span><span class="ms">M4</span></div>
+        <div class="bar"><i style="width:0%"></i></div>
+        <p class="d">approvals 表已建；Gate 处理器未做。</p>
+      </div>
+      <div class="dom">
+        <div class="top"><span class="name">D5 可观测性</span><span class="ms">M1 ✓ / M5</span></div>
+        <div class="bar"><i style="width:35%;background:var(--partial)"></i></div>
+        <p class="d">事件契约 + 落库 + 查询已就绪；<b>CLI 展示、HTTP API、实时跟随未做</b>。</p>
+      </div>
+      <div class="dom">
+        <div class="top"><span class="name">D6 用量与成本</span><span class="ms">桩 M1 / M3</span></div>
+        <div class="bar"><i style="width:20%;background:var(--partial)"></i></div>
+        <p class="d">usage 表 + adapter <code>collectUsage</code> 已通；<b>无调度器写入、无展示</b>。</p>
+      </div>
+      <div class="dom">
+        <div class="top"><span class="name">D7 质量归因 / Prompt 闭环</span><span class="ms">桩 M1</span></div>
+        <div class="bar"><i style="width:10%;background:var(--partial)"></i></div>
+        <p class="d">run.config_ref 字段已留；记录与归因均未做（定位：非独立子系统）。</p>
+      </div>
+      <div class="dom">
+        <div class="top"><span class="name">D8 编排生成（意图→DAG）</span><span class="ms">M1 ✓ / 远期</span></div>
+        <div class="bar"><i style="width:25%;background:var(--partial)"></i></div>
+        <p class="d">YAML schema 已按"AI 可生成"标准设计；AI 生成本身为远期。</p>
+      </div>
+      <div class="dom">
+        <div class="top"><span class="name">D9 上下文工程</span><span class="ms">桩 M1 / M3</span></div>
+        <div class="bar"><i style="width:15%;background:var(--partial)"></i></div>
+        <p class="d">context 表已建（结构化记录）；<b>注入器属 M3，未做</b>。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 两条管道 -->
+  <section>
+    <h2><span class="n">04</span>两条"管道" · 别混淆</h2>
+    <p class="note">"消息管道"在架构上是两件不同的事，分属不同里程碑。</p>
+    <div class="pipes">
+      <div class="pipe built">
+        <h4>① Run 事件流</h4>
+        <div class="scope">单个 Run 的输出 → 归一化事件 · 已实现（M2）</div>
+        <div class="flow">
+          <span class="node on">harness 进程</span><span class="ar">→</span>
+          <span class="node on">adapter parseLine</span><span class="ar">→</span>
+          <span class="node on">UnifiedEvent</span><span class="ar">→</span>
+          <span class="node on">Store.events</span>
+        </div>
+      </div>
+      <div class="pipe missing">
+        <h4>② 平台事件总线</h4>
+        <div class="scope">多 Run 事件 → 多消费方订阅 · 未做（M5 / ADR-007）</div>
+        <div class="flow">
+          <span class="node">多个 Run</span><span class="ar">→</span>
+          <span class="node">事件总线</span><span class="ar">→</span>
+          <span class="node">CLI / TUI / WebUI / CI</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. adapter 通信模型 -->
+  <section>
+    <h2><span class="n">05</span>adapter 之间如何"通信"</h2>
+    <p class="note">核心架构分叉。平台的价值押在这里。</p>
+    <div class="card bb">
+      <div class="bbrow">
+        <span class="bbtag ok">推荐 · 黑板</span>
+        <div class="chain">
+          <span class="chip ad">adapter A</span><span class="ar">→</span>
+          <span class="chip core">core（黑板：产物 / 事件 / 上下文）</span><span class="ar">→</span>
+          <span class="chip ad">adapter B</span>
+        </div>
+      </div>
+      <div class="bbrow">
+        <span class="bbtag no">避免 · 直连</span>
+        <div class="chain">
+          <span class="chip ad">adapter A</span><span class="ar">⇢</span>
+          <span class="chip strike">adapter B（绕过内核）</span>
+          <span class="t" style="color:var(--faint);font-size:11.5px">→ 退化为电话线，失去隔离 / 可观测 / 可替换</span>
+        </div>
+      </div>
+      <p class="d" style="font-size:12.5px;color:var(--muted);padding-top:4px;border-top:1px dashed var(--border);margin-top:2px">
+        结论：<b>"adapter 间通信协议"不是一条新协议</b>，而是 <b>D1 任务态注入 + D9 上下文工程</b> 的落地 —— 由 core 中介的产物传递。
+      </p>
+    </div>
+  </section>
+
+  <!-- 6. 路线图 -->
+  <section>
+    <h2><span class="n">06</span>里程碑 · 阶段性目标</h2>
+    <p class="note">M0–M2 已交付；M3 是平台的第一个内核。</p>
+    <div class="ms">
+      <div class="m done"><div class="pill">M0 文档骨架</div><div class="desc">规划 · monorepo</div></div>
+      <div class="m done"><div class="pill">M1 域模型</div><div class="desc">契约冻结 · schema · Store</div></div>
+      <div class="m done"><div class="pill">M2 单 harness</div><div class="desc">adapter-cli · adapter-pi · 真实打通</div></div>
+      <div class="m now"><div class="pill">M3 调度与隔离</div><div class="desc">DAG · 状态机 · worktree · 上下文注入器</div></div>
+      <div class="m todo"><div class="pill">M4 多 harness</div><div class="desc">claude-code / codex · registry · 路由降级 · Gate</div></div>
+      <div class="m todo"><div class="pill">M5 CLI 闭环</div><div class="desc">hcp 六命令 · HTTP API · 事件总线</div></div>
+      <div class="m todo"><div class="pill">M6 扩展验证</div><div class="desc">第三/四个 harness · http adapter</div></div>
+    </div>
+  </section>
+
+  <footer>
+    <b>一句话现状</b>：规划已是平台级（9 能力域 · 4 轴 · 12 ADR · 5 backlog），代码只落地约 1.5 个能力域；
+    <b>中台的心脏（调度）尚未存在</b>，四根桩（usage / config_ref / context / events 全量）表已建、无运行时写入。
+  </footer>
+
+</div>
+</body>
+</html>

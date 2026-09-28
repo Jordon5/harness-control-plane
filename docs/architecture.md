@@ -2,7 +2,7 @@
 
 > 版本：v0.1（DRAFT）
 > 日期：2026-09-14
-> 关联：[requirements.md](./requirements.md) · [draft.md](./draft.md) · [development-plan.md](./development-plan.md)
+> 关联：[requirements.md](./requirements.md) · [draft.md](./draft.md) · [development-plan.md](./development-plan.md) · [契约/](./契约/)
 
 ---
 
@@ -18,7 +18,7 @@
 
 ### 1.2 定位
 
-**可扩展的多 Agent Harness 中枢控制器。**
+**可扩展的多 Agent Harness 调度平台。**（定位演进见 ADR-012）
 
 它不统一模型 API，不替代任何 coding agent，只统一**调度协议**：
 
